@@ -1,0 +1,525 @@
+#+TITLE: Emacs Lisp Stat
+#+AUTHOR: sugano-nu
+#+STARTUP: indent content
+
+* Statistics with Emacs Calc
+
+Once upon a time, I heard
+
+#+BEGIN_QUOTE
+... I would never think of using pure emacs lisp for data analysis tasks anyway.
+#+END_QUOTE
+
+somewhere else on the Earth.
+Yes, perhaps he is correct.
+
+For example, R is specialized for statistical data analysis, with gigantic force of R communities.
+
+But I happend to know that
+
+- Emacs *Org-mode with Babel is a powerful multi programming language environment* .
+- *Emacs Calc is so clever with mathematical calculation* .
+- *Emacs Lisp is the world's most used LISP* .
+- Co-creator of R, Ross Ihaka expresses [[https://www.stat.auckland.ac.nz/~ihaka/downloads/Compstat-2008.pdf]["Back to the Future: Lisp as a Base for a Statistical Computing System"]]
+
+Yes, Emacs Lisp is the Future ;-)
+
+Now, Everything is well prepared except for my own programming skill.
+
+It's time to struggle with Emacs Lisp on Elementary Statistics.
+
+Here, I'll have a simple try on elementary statistics with Emacs Lisp, Emacs Calc and Emacs org-mode.
+
+1. Arithmetic mean based on ~calcFunc-vmean~
+2. Variance based on ~calcFunc-vvar~
+3. Covariance based on ~calcFunc-vcov~
+4. Correlation of coefficients based on ~calcFunc-vcor~
+5. (linear regression based on ~calcFunc-fit~ )
+6. (Inference Statistics)
+
+
+* Make a CSV File from R
+- R :: Let's have a look into famous iris data.
+
+
+~#+BEGIN_SRC R~ code block enables *R programming inside an Org-mode document* .
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC R :session *R* :results output value :exports both :colnames yes :rownames yes
+data(iris)
+head(iris, 3)
+,#+END_SRC
+#+END_EXAMPLE
+
+
+#+BEGIN_SRC R :session *R* :results output value :exports results :colnames yes :rownames yes
+data(iris)
+head(iris, 3)
+#+END_SRC
+
+#+RESULTS:
+|   | Sepal.Length | Sepal.Width | Petal.Length | Petal.Width | Species |
+|---+--------------+-------------+--------------+-------------+---------|
+| 1 |          5.1 |         3.5 |          1.4 |         0.2 | setosa  |
+| 2 |          4.9 |           3 |          1.4 |         0.2 | setosa  |
+| 3 |          4.7 |         3.2 |          1.3 |         0.2 | setosa  |
+
+
+- R :: Make a CSV file.
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC R :session *R* :results output :exports both
+write.csv(iris, file = "iris.csv")
+,#+END_SRC
+#+END_EXAMPLE
+
+
+#+BEGIN_SRC R :session *R* :results output :exports results
+write.csv(iris, file = "iris.csv")
+#+END_SRC
+
+#+RESULTS:
+
+
+- shell :: Confirm.
+
+~#+BEGIN_SRC sh~ block enables executing *shell commands inside an Org-mode document* .
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC sh :results output :exports both
+ls -la iris.csv
+wc iris.csv
+,#+END_SRC
+#+END_EXAMPLE
+
+
+
+#+BEGIN_SRC sh :results output :exports results
+ls -la iris.csv
+wc iris.csv
+#+END_SRC
+
+#+RESULTS:
+: -rw-r--r--  1 sugano  staff  4821  2  3 12:24 iris.csv
+:      151     151    4821 iris.csv
+
+
+* Import LIST from iris CSV File
+- Org-mode :: Import CSV file into an org-mode document.
+
+iris data are read into Emacs Lisp /list object/ ~dd~ .
+
+- ~#+begin_src emacs-lisp~ code block enables *Emacs Lisp programming inside an Org-mode document* .
+- Option ~:results silent~ prohibits redundant output of iris data after the code block.
+- Option ~:var~ specifies on including information.
+
+
+# #+begin_src emacs-lisp :results silent :var file="iris.csv" :var format="csv"
+
+
+#+BEGIN_EXAMPLE
+,#+begin_src emacs-lisp :results silent :var file="iris.csv"
+(setq dd
+      (with-temp-buffer
+        (org-table-import (expand-file-name file) nil)
+        (org-table-to-lisp)))
+,#+end_src
+#+END_EXAMPLE
+
+
+#+begin_src emacs-lisp :results silent :var file="iris.csv"
+(setq dd
+      (with-temp-buffer
+        (org-table-import (expand-file-name file) nil)
+        (org-table-to-lisp)))
+#+end_src
+
+
+* Make a list of data.
+- Emacs Lisp :: Exclude 6 th column filled with /alphabet characters/ .
+     Now, data contains only numbers.
+
+
+- ~:var TMP=read-csv-01[, 0:4]~ specifies copy the data of ~read-csv-01~ into Emacs Lisp object ~TMP~.
+- Only columns from 0 to 4 are copied. Note 5th column is excluded here.
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC emacs-lisp :results value scalar :exports both 
+(car dd)
+,#+END_SRC
+#+END_EXAMPLE
+
+
+- first line of data.
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports results
+(car dd)
+#+END_SRC
+
+#+RESULTS:
+: ("1" "5.1" "3.5" "1.4" "0.2")
+
+
+- last line of data.
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(car (reverse dd))
+#+END_SRC
+
+
+* Load Functions
+- Emacs Lisp :: Load Functions
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(load-file "emacs-lisp-stat.el")
+,#+END_SRC
+#+END_EXAMPLE
+
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports results
+(load-file "emacs-lisp-stat.el")
+#+END_SRC
+
+#+RESULTS:
+: t
+
+* Arithmetic mean
+- Emacs Lisp :: mean
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-mean 1 dd)
+,#+END_SRC
+#+END_EXAMPLE
+
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports results
+(els-mean 1 dd)
+#+END_SRC
+
+#+RESULTS:
+: 5.84333333333
+
+
+- R :: mean
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC R :session *R* :results output :exports both
+mean(iris[, 1])
+,#+END_SRC
+#+END_EXAMPLE
+
+#+BEGIN_SRC R :session *R* :results output :exports results
+mean(iris[, 1])
+#+END_SRC
+
+#+RESULTS:
+: [1] 5.843333
+
+
+* Mutiple Means
+- Emacs Lisp :: Means of column from 1 to 4
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(mapcar* #'(lambda (i) (els-mean i dd))
+         '(1 2 3 4))
+,#+END_SRC
+#+END_EXAMPLE
+
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports results
+(mapcar* #'(lambda (i) (els-mean i dd))
+         '(1 2 3 4))
+#+END_SRC
+
+#+RESULTS:
+: (5.84333333333 3.05733333333 3.758 1.19933333333)
+
+
+
+- R :: Means of column from 1 to 4
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC R :session *R* :results output :exports both
+colMeans(iris[, 1:4])
+,#+END_SRC
+#+END_EXAMPLE
+
+#+BEGIN_SRC R :session *R* :results output :exports results
+colMeans(iris[, 1:4])
+#+END_SRC
+
+#+RESULTS:
+: Sepal.Length  Sepal.Width Petal.Length  Petal.Width 
+:     5.843333     3.057333     3.758000     1.199333
+
+
+* Population Variance (N)
+- Emacs Lisp :: Population Variance (N)
+
+#+BEGIN_EXAMPLE
+,#+BEGIN_SRC emacs-lisp :results value scalar :exports results
+(els-varp 1 dd)
+,#+END_SRC
+#+END_EXAMPLE
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-varp 1 dd)
+#+END_SRC
+
+#+RESULTS:
+: 0.681122222222
+
+* Unbiased Variance (N-1)
+
+- Emacs Lisp :: Unbiased Variance (N-1)
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-var 1 dd)
+#+END_SRC
+
+#+RESULTS:
+: 0.685693512304
+
+- R :: Unbiased Variance (N-1)
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+var(iris[, 1])
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.6856935
+
+
+* Unbiased Standard Deviation
+- Emacs Lisp :: Unbiased Standard Deviation
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-sd 1 dd)
+#+END_SRC
+
+#+RESULTS:
+: 0.8280661279777117
+ 
+- R :: Unbiased Standard Deviation
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+sd(iris[, 1])
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.8280661
+
+
+* Multiple Unbiased Standard Deviation
+- Emacs Lisp :: Multiple Unbiased Standard Deviation
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(mapcar* #'(lambda (i) (els-sd i dd))
+         '(1 2 3 4))
+#+END_SRC
+
+#+RESULTS:
+: (0.8280661279777117 0.43586628493610285 1.7652982332597515 0.762237668960279)
+ 
+- R :: Multiple Unbiased Standard Deviation
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+sapply(iris[, 1:4], FUN = sd)
+#+END_SRC
+
+#+RESULTS:
+: Sepal.Length  Sepal.Width Petal.Length  Petal.Width 
+:    0.8280661    0.4358663    1.7652982    0.7622377
+
+
+* Covariance
+- Emacs Lisp :: Covariance
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-cov 2 3 dd)
+#+END_SRC
+
+#+RESULTS:
+: -0.329656375839
+ 
+- R :: Covariance
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+cov(iris[, c(2:3)])
+#+END_SRC
+
+#+RESULTS:
+:              Sepal.Width Petal.Length
+: Sepal.Width    0.1899794   -0.3296564
+: Petal.Length  -0.3296564    3.1162779
+
+* Correlation of Coefficients
+- Emacs Lisp :: Correlation of Coefficients
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-cor 2 3 dd)
+#+END_SRC
+
+#+RESULTS:
+: -0.428440104331
+ 
+- R :: Correlation of Coefficients
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+cor(iris[, c(2:3)])
+#+END_SRC
+
+#+RESULTS:
+:              Sepal.Width Petal.Length
+: Sepal.Width    1.0000000   -0.4284401
+: Petal.Length  -0.4284401    1.0000000
+* Multiple Correlation of Coefficients
+- Emacs Lisp :: Multiple Correlation of Coefficients
+
+- done by ~mapcar*~ function
+
+#+BEGIN_SRC emacs-lisp :results value :exports both
+(mapcar* #'(lambda (i)
+             (mapcar* #'(lambda (j) (els-cor i j dd))
+                      '(1 2 3 4)))
+         '(1 2 3 4))
+#+END_SRC
+
+#+RESULTS:
+|               1 | -0.117569784133 |  0.871753775887 |  0.817941126272 |
+| -0.117569784133 |               1 | -0.428440104331 | -0.366125932537 |
+|  0.871753775887 | -0.428440104331 |               1 |  0.962865431403 |
+|  0.817941126272 | -0.366125932537 |  0.962865431403 |               1 |
+
+
+
+- R :: Multiple Correlation of Coefficients
+
+#+BEGIN_SRC R :session *R* :results value :exports both
+cor(iris[, 1:4])
+#+END_SRC
+
+#+RESULTS:
+|                  1 | -0.117569784133002 | 0.871753775886583 |  0.817941126271576 |
+| -0.117569784133002 |                  1 | -0.42844010433054 | -0.366125932536439 |
+|  0.871753775886583 |  -0.42844010433054 |                 1 |  0.962865431402796 |
+|  0.817941126271576 | -0.366125932536439 | 0.962865431402796 |                  1 |
+* Standardized Normal Distribution
+- 90 percent significance
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-ltpn -1.644854 0 1)                ; => 0.0499999615275
+(els-utpn 1.644854 0 1)                 ; => 0.0499999615275
+#+END_SRC
+
+#+RESULTS:
+: 0.0499999615275
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+dnorm(1.644854, 0, 1)
+pnorm(1.644854, 0, 1)
+qnorm(0.95, 0, 1)
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.1031356
+: [1] 0.95
+: [1] 1.644854
+
+
+- 95 percent significance
+  - It takes a bit for comutation.
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both :eval no
+(els-ltpn -1.959964 0 1)                ; => 0.0249999990955
+(els-utpn 1.959964 0 1)                 ; => 0.0249999990955
+(+ (els-ltpn -1.959964 0 1)
+   (els-utpn 1.959964 0 1))             ; => 0.049999998191
+#+END_SRC
+
+#+RESULTS:
+: 0.049999998191
+
+- Computation by R is quick.
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+dnorm(1.959964, 0, 1)
+pnorm(1.959964, 0, 1)
+qnorm(0.975, 0, 1)
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.05844507
+: [1] 0.975
+: [1] 1.959964
+
+- 95 percent significance
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both :eval no
+(els-ltpn -2.58 0 1)                    ; => 0.0049400157585
+(els-utpn 2.58 0 1)                     ; => 0.0049400157585
+#+END_SRC
+
+#+RESULTS:
+: 0.0049400157585
+
+* Chi-squire Distribution
+- 90 percent significance
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both
+(els-ltpc -1.64 0 1)                    ; => 0.0505025834745
+(els-utpc 2.705543 1)                     ; => 0.0505025834745
+#+END_SRC
+
+#+RESULTS:
+: 0.100000028475
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+dchisq(2.705543, 1)
+pchisq(2.705543, 1)
+qchisq(.90, 1)
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.06270204
+: [1] 0.9
+: [1] 2.705543
+
+
+
+- 95 percent significance
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both :eval no
+(els-ltpn -1.96 0 1)                    ; => 0.024997895148
+(els-utpn 1.96 0 1)                     ; => 0.024997895148
+#+END_SRC
+
+#+RESULTS:
+: 0.024997895148
+
+#+BEGIN_SRC R :session *R* :results output :exports both
+dchisq(3.841459, 1)
+pchisq(3.841459, 1)
+qchisq(.95, 1)
+#+END_SRC
+
+#+RESULTS:
+: [1] 0.02981946
+: [1] 0.95
+: [1] 3.841459
+
+
+
+
+- 95 percent significance
+
+#+BEGIN_SRC emacs-lisp :results value scalar :exports both :eval no
+(els-ltpn -2.58 0 1)                    ; => 0.0049400157585
+(els-utpn 2.58 0 1)                     ; => 0.0049400157585
+#+END_SRC
+
+#+RESULTS:
+: 0.0049400157585
